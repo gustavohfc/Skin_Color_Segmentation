@@ -11,6 +11,7 @@ def get_args():
 
     parser.add_argument("--images_dir", required=True)
     parser.add_argument("--ground_truth_dir", required=True)
+    parser.add_argument("--model_dir", required=True)
     parser.add_argument("--window_size", required=True, type=int, choices=[x for x in range(1, 36) if x % 2 != 0])
 
     return parser.parse_args()
@@ -67,14 +68,28 @@ def get_input_data(images_dir, ground_truth_dir, window_size):
     return images, labels
 
 
-def train_new_model(images, labels, window_size):
-    images = np.asarray(images)
+def train_new_model(images, labels, window_size, model_dir):
+    images = np.asarray(images, np.int32)
     labels = np.asarray(labels, np.int32)
 
-    print(images.shape)
-    print(labels.shape)
+    feature_columns = [tf.feature_column.numeric_column("Images", shape=[window_size, window_size, 3], dtype=tf.int32)]
 
-    # print(images)
+    classifier = tf.estimator.DNNClassifier(
+        feature_columns=feature_columns,
+        hidden_units=[256, 32],
+        n_classes=2,
+        model_dir="model_dir"
+    )
+
+    train_input_fn = tf.estimator.inputs.numpy_input_fn(
+        x={"Images": images},
+        y=labels,
+        shuffle=False,
+        batch_size=1
+    )
+
+    classifier.train(input_fn=train_input_fn)
+
 
 
 def main():
@@ -86,7 +101,7 @@ def main():
 
     print("Dados de entrada: {} imagens de {}x{} pixels".format(len(images), args.window_size, args.window_size))
 
-    train_new_model(images, labels, args.window_size)
+    train_new_model(images, labels, args.window_size, args.model_dir)
 
     end = time.time()
 
