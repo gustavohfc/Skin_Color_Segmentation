@@ -4,6 +4,9 @@ import time
 import tensorflow as tf
 import numpy as np
 import cv2
+import logging
+
+import dnn
 
 
 def get_args():
@@ -76,17 +79,18 @@ def train_new_model(images, labels, window_size, model_dir):
 
     classifier = tf.estimator.DNNClassifier(
         feature_columns=feature_columns,
-        hidden_units=[256, 32],
-        n_classes=2,
-        model_dir="model_dir"
+        hidden_units=dnn.hidden_units,
+        n_classes=dnn.n_classes,
+        model_dir=model_dir
     )
 
     train_input_fn = tf.estimator.inputs.numpy_input_fn(
         x={"Images": images},
         y=labels,
-        shuffle=False,
-        batch_size=1
+        shuffle=False
     )
+
+    logging.getLogger().setLevel(logging.INFO)
 
     classifier.train(input_fn=train_input_fn)
 
