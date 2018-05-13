@@ -6,7 +6,8 @@ import numpy as np
 import cv2
 import logging
 
-import dnn
+hidden_units=[1024, 512, 256, 128, 64, 32]
+n_classes=2
 
 
 def get_args():
@@ -79,8 +80,8 @@ def train_new_model(images, labels, window_size, model_dir):
 
     classifier = tf.estimator.DNNClassifier(
         feature_columns=feature_columns,
-        hidden_units=dnn.hidden_units,
-        n_classes=dnn.n_classes,
+        hidden_units=hidden_units,
+        n_classes=n_classes,
         model_dir=model_dir
     )
 
@@ -93,6 +94,8 @@ def train_new_model(images, labels, window_size, model_dir):
     logging.getLogger().setLevel(logging.INFO)
 
     classifier.train(input_fn=train_input_fn)
+
+    return classifier
 
 
 

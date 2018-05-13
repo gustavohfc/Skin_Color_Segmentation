@@ -1,10 +1,13 @@
 import argparse
 import tensorflow as tf
 import numpy as np
+import time
 import cv2
 
-hidden_units=[1024, 512, 256, 128, 64, 32]
-n_classes=2
+import train
+
+hidden_units=train.hidden_units
+n_classes=train.n_classes
 
 
 def get_args():
@@ -55,9 +58,9 @@ def segment(classifier, input_image, window_size):
     for i, y in enumerate(range(0, input_image.shape[0], window_size)):
         for j, x in enumerate(range(0, input_image.shape[1], window_size)):
             if predictions[i + j]["probabilities"][0] > predictions[i + j]["probabilities"][1]:
-                segmented_image[y : y + window_size, x : x + window_size] = 255
-            else:
                 segmented_image[y : y + window_size, x : x + window_size] = 0
+            else:
+                segmented_image[y : y + window_size, x : x + window_size] = 1
 
 
     return segmented_image
@@ -66,15 +69,34 @@ def segment(classifier, input_image, window_size):
 
 
 def main():
+    start = time.time()
+
     args = get_args()
+
+
+    # classifier = load_classifier(args.model_dir, args.window_size)
+
+    images, labels = train.get_input_data("Images/Input_Originals/", "Images/Input_Ground_Truth/", 11)
+
+    print("Dados de entrada: {} imagens de {}x{} pixels".format(len(images), 11, 11))
+
+    classifier = train.train_new_model(images, labels, 11, "req2_model")
+
+
 
     input_image = cv2.imread(args.input_image_path)
     if input_image is None:
         raise FileNotFoundError("Não foi possivel abrir a imagem " + args.input_image_path)
-
-    classifier = load_classifier(args.model_dir, args.window_size)
-
     segmented_image = segment(classifier, input_image, args.window_size)
+
+
+    end = time.time()
+
+    print("Time: {}".format(end - start))
+
+
+    print("sum: {}".format(sum(sum(segmented_image))))
+
 
     cv2.imshow("Original", input_image)
     cv2.imshow("Segmented", segmented_image)
