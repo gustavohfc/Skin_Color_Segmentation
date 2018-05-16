@@ -1,0 +1,33 @@
+Requisito 1:
+
+Treino:
+	Accuracy mean: 	
+	Accuracy std: 	
+	Jaccard mean: 	
+	Jaccard std: 	
+
+Teste:
+	Acc - Image number 278: 
+	Jac - Image number 278: 
+
+	Acc - Image number 243: 
+	Jac - Image number 243: 
+
+	Accuracy mean: 		
+	Accuracy std: 		
+	Jaccard mean: 		
+	Jaccard std: 		
+
+Requisito 2:
+
+Treino:
+	Accuracy mean: 		
+	Accuracy std: 		
+	Jaccard mean: 		
+	Jaccard std: 		
+
+Teste:
+	Accuracy mean: 		0.8706507472554632
+	Accuracy std: 		0.03984863105879518
+	Jaccard mean: 		0.39807145619606593
+	Jaccard std:        0.13963534128858307

@@ -4,12 +4,15 @@ import argparse
 import os
 import cv2
 
+hue_threshold = 0.17
+saturation_threshold = 0.01
+
 def get_args():
     parser = argparse.ArgumentParser(description='.')
 
+    parser.add_argument("--train_ground_truths_dir", required=True)
     parser.add_argument("--input_images_dir", required=True)
-    parser.add_argument("--ground_truths_dir", required=True)
-    parser.add_argument("--output_dir", required=True)
+    parser.add_argument("--expected_ground_truths_dir", required=True)
 
     return parser.parse_args()
 
@@ -17,7 +20,7 @@ def get_args():
 def read_images(dir):
     input_images = []
 
-    for file in os.listdir(dir):
+    for file in sorted(os.listdir(dir)):
         # Ignore hidden files
         if file[0] == '.':
             continue
@@ -44,7 +47,7 @@ def calculate_histogram(ground_truths):
 
     histograms = []
     for channel in range(2):
-        hist, bin_edges = np.histogram(ground_truths[:, :, :, channel].ravel(), 255, (0, 255))
+        hist, _ = np.histogram(ground_truths[:, :, :, channel].ravel(), 255, (0, 255))
         histograms.append(hist)
 
     # Remove outliers from the black background
@@ -60,47 +63,94 @@ def calculate_histogram(ground_truths):
 
     return histograms
 
+
 def show_histograms(histograms):
     plt.subplot(2, 1, 1)
-    plt.bar(np.arange(255), histograms[0])
+    plot = plt.bar(np.arange(255), histograms[0])
     plt.title('Hue')
+    for i, bar in enumerate(plot):
+        bar.set_facecolor('r' if histograms[0, i] < hue_threshold else 'g')
 
     plt.subplot(2, 1, 2)
     plot = plt.bar(np.arange(255), histograms[1])
-    plt.title('Saturation')
+    plt.title('s')
+    for i, bar in enumerate(plot):
+        bar.set_facecolor('r' if histograms[1, i] < saturation_threshold else 'g')
 
     plt.show()
 
+
 def segment_images(input_images, histograms):
+    segmented_images = []
+
     for image in input_images:
         for i in range(image.shape[0]):
             for j in range(image.shape[1]):
                 hue = image[i, j, 0]
-                saturation = image[i, j, 1]
+                s = image[i, j, 1]
 
-                if histograms[0, hue-1] < 0.05 or histograms[1, saturation-1] < 0.02:
+                if histograms[0, hue-1] < hue_threshold or histograms[1, s-1] < saturation_threshold:
                     image[i, j, :] = 0
+                else:
+                    image[i, j, 0] = 0
+                    image[i, j, 1] = 0
+                    image[i, j, 2] = 255
 
-        image = cv2.cvtColor(image, cv2.COLOR_HSV2BGR)
-        cv2.imshow("Teste", image)
-        cv2.waitKey(0)
+
+        segmented_images.append(image)
+
+        # image = cv2.cvtColor(image, cv2.COLOR_HSV2BGR)
+        # cv2.imshow("Teste", image)
+        # cv2.waitKey(0)
+
+    return segmented_images
+
+    # return np.asarray(acuracia).mean()
+
+def evaluate_results(segmented_images, expected_ground_truths):
+    acuracia = []
+    jaccard_index = []
+
+    for segmented, expected in zip(segmented_images, expected_ground_truths):
+        segmented_binarized = segmented[:, :, 2] > 127
+        expected_binarized = expected[:, :, 2] > 127
+
+        acuracia.append(sum(np.equal(segmented_binarized, expected_binarized).ravel()) / np.size(segmented_binarized))
+
+        intersection = sum(np.logical_and(segmented_binarized, expected_binarized).ravel())
+        union = sum(np.logical_or(segmented_binarized, expected_binarized).ravel())
+        jaccard_index.append(intersection / union)
+
+    print("Acurácia (media): {}".format(np.asanyarray(acuracia).mean()))
+    print("Acurácia (desvio): {}".format(np.asanyarray(acuracia).std()))
+
+    print("Jaccard index (meida): {}".format(np.asanyarray(jaccard_index).mean()))
+    print("Jaccard index (desvio): {}".format(np.asanyarray(jaccard_index).std()))
+
 
 def main():
     # Parse the command line arguments
     args = get_args()
 
+    print("Lendo entrada")
     input_images = read_images(args.input_images_dir)
-    ground_truths = read_images(args.ground_truths_dir)
+    expected_ground_truths = read_images(args.expected_ground_truths_dir)
+    train_ground_truths = read_images(args.train_ground_truths_dir)
 
-    histograms = calculate_histogram(ground_truths)
+    if len(input_images) != len(expected_ground_truths):
+        print("O número de imagens em 'input_images_dir' e 'expected_ground_truths_dir' deve ser igual.")
+        exit(1)
+
+    print("Histograma")
+    histograms = calculate_histogram(train_ground_truths)
 
     show_histograms(histograms)
 
-    segment_images(input_images, histograms)
+    print("Segmantando")
+    segmented_images = segment_images(input_images, histograms)
 
-    # print(histogram)
-
-    # cv2.waitKey(0)
+    print("calculando")
+    evaluate_results(segmented_images, expected_ground_truths)
 
 
 if __name__ == "__main__":
