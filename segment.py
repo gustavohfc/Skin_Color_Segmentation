@@ -8,7 +8,7 @@ hue_threshold = 0.17
 saturation_threshold = 0.01
 
 def get_args():
-    parser = argparse.ArgumentParser(description='.')
+    parser = argparse.ArgumentParser()
 
     parser.add_argument("--train_ground_truths_dir", required=True)
     parser.add_argument("--input_images_dir", required=True)
@@ -73,7 +73,7 @@ def show_histograms(histograms):
 
     plt.subplot(2, 1, 2)
     plot = plt.bar(np.arange(255), histograms[1])
-    plt.title('s')
+    plt.title('Saturation')
     for i, bar in enumerate(plot):
         bar.set_facecolor('r' if histograms[1, i] < saturation_threshold else 'g')
 
@@ -99,13 +99,9 @@ def segment_images(input_images, histograms):
 
         segmented_images.append(image)
 
-        # image = cv2.cvtColor(image, cv2.COLOR_HSV2BGR)
-        # cv2.imshow("Teste", image)
-        # cv2.waitKey(0)
 
     return segmented_images
 
-    # return np.asarray(acuracia).mean()
 
 def evaluate_results(segmented_images, expected_ground_truths):
     acuracia = []
@@ -132,7 +128,6 @@ def main():
     # Parse the command line arguments
     args = get_args()
 
-    print("Lendo entrada")
     input_images = read_images(args.input_images_dir)
     expected_ground_truths = read_images(args.expected_ground_truths_dir)
     train_ground_truths = read_images(args.train_ground_truths_dir)
@@ -141,15 +136,12 @@ def main():
         print("O número de imagens em 'input_images_dir' e 'expected_ground_truths_dir' deve ser igual.")
         exit(1)
 
-    print("Histograma")
     histograms = calculate_histogram(train_ground_truths)
 
     show_histograms(histograms)
 
-    print("Segmantando")
     segmented_images = segment_images(input_images, histograms)
 
-    print("calculando")
     evaluate_results(segmented_images, expected_ground_truths)
 
 
